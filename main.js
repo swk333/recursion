@@ -1,21 +1,20 @@
 'use strict';
-function addEveryOtherElement(intArr){
+
+function charInBagOfWordsCount(bagOfWords,keyCharacter){
   //ここから書きましょう
-  
-  return addEveryOtherElementHelper(intArr, 1, 0);
-}
+  let count = 0;
+//  let lengthOfArr = bagOfWords.length;
 
-function addEveryOtherElementHelper(intArr, index, sum){
-  if(index > intArr.length){
-    return sum;
-  }
-  
-  if(index % 2 != 0){
-    sum += intArr[index-1];
-  }
-  return addEveryOtherElementHelper(intArr, index+2, sum);
-  
+  bagOfWords.forEach(word =>{
+    for(let i = 0; i < word.length; i++){
+      if(word[i] === keyCharacter){
+        count++;
+      }
+    }
+  });
+    
+  return count;
 
 }
-
-//console.log(addEveryOtherElement([34,46,45,57]));
+console.log(charInBagOfWordsCount(["hello","world"],"o"));
+console.log(charInBagOfWordsCount(["The","tech","giant","is in the","city center"],"e"));
