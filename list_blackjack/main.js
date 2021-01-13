@@ -31,4 +31,4 @@ function blackjackPointCalc(string){
 
 }
 
-winnerBlackjack(["♥10","♥6","♣K"],["♠Q","♦2","♥K"]);
+console.log(winnerBlackjack(["♥10","♥6","♣K"],["♠Q","♦2","♥K"]));
