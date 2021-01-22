@@ -1,0 +1,26 @@
+.parentBox {
+  background-color: gray;
+  height: 100vh;
+  /* flexboxを使って子要素の配置を指定しましょう */
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+
+}
+
+.box {
+  width: 20%;
+  height: 10vh;
+}
+
+.bg-red {
+background: #fab1a0;
+}
+
+.bg-blue {
+background: #74b9ff;
+}
+
+.bg-green {
+background: #55efc4;
+}

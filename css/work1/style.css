@@ -1,0 +1,32 @@
+.bg-gray {
+  background: #bdc3c7;
+}
+.bg-blue {
+  background: #74b9ff;
+}
+.bg-red {
+  background: #fab1a0;
+}
+.bg-green {
+  background: #55efc4;
+}
+
+.content-center {
+  display: flex;
+  justify-content: center;
+}
+
+.content-spacearound {
+  display: flex;
+  justify-content: space-around;
+}
+
+.content-spacebetween {
+  display: flex;
+  justify-content: space-between;
+}
+
+.content-flexend {
+  display: flex;
+  justify-content: flex-end;
+}

@@ -1,0 +1,15 @@
+.parentBox {
+  background-color: gray;
+  height: 100vh;
+  
+  /* flexboxを使って子要素の配置を指定しましょう */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.redBox {
+  background: #fab1a0;
+  width: 50%;
+  height: 50vh;
+}
