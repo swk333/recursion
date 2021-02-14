@@ -1,0 +1,68 @@
+<body>
+
+  <div id="target" class="container bg-secondary m-3 p-3">
+
+  <div>
+          <form action="#" method="post">
+          <select class="brand custom-select" name="brand" id="brand">
+          <option>Cakon</option>,<option>Go MN</option>,<option>VANY</option>
+          </select>
+          </form></div><div>
+          <form action="#" method="post">
+          <select class="model custom-select" name="model" id="model">
+          <option>ABC 3000M</option>,<option>ABC 5000M</option>,<option>ABC 7000M</option>,<option>ABC 9000M</option>,<option>ABC 9900M</option>
+          </select>
+          </form></div><div>
+      <input type="number" class="form-control" name="accessory" id="accessory" value="0"></div><div>
+        ,,,,,,,,,<table class="table">
+          <thead>
+              <tr>
+              <th scope="col">Battery Name</th>
+              <th scope="col">Estimated Hours</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr><th scope="row">WKL-140</th><td>1.83</td></tr><tr><th scope="row">Wmacro-78</th><td>1.02</td></tr><tr><th scope="row">Wmacro-140</th><td>1.46</td></tr><tr><th scope="row">IOP-E78</th><td>2.68</td></tr><tr><th scope="row">IOP-E140</th><td>4.02</td></tr><tr><th scope="row">IOP-E188</th><td>5.35</td></tr><tr><th scope="row">RYN-C65</th><td>2.04</td></tr><tr><th scope="row">RYN-C85</th><td>2.56</td></tr><tr><th scope="row">RYN-C140</th><td>4.09</td></tr><tr><th scope="row">RYN-C290</th><td>8.03</td></tr>
+          </tbody>
+          </table></div></div>
+  
+  <script src="main.js"></script>
+  <!-- Code injected by live-server -->
+  <script type="text/javascript">
+    // <![CDATA[  <-- For SVG support
+    if ('WebSocket' in window) {
+      (function () {
+        function refreshCSS() {
+          var sheets = [].slice.call(document.getElementsByTagName("link"));
+          var head = document.getElementsByTagName("head")[0];
+          for (var i = 0; i < sheets.length; ++i) {
+            var elem = sheets[i];
+            var parent = elem.parentElement || head;
+            parent.removeChild(elem);
+            var rel = elem.rel;
+            if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+              var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+              elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+            }
+            parent.appendChild(elem);
+          }
+        }
+        var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+        var address = protocol + window.location.host + window.location.pathname + '/ws';
+        var socket = new WebSocket(address);
+        socket.onmessage = function (msg) {
+          if (msg.data == 'reload') window.location.reload();
+          else if (msg.data == 'refreshcss') refreshCSS();
+        };
+        if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+          console.log('Live reload enabled.');
+          sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+        }
+      })();
+    }
+    else {
+      console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+    }
+    // ]]>
+  </script>
+  </body>
