@@ -64,36 +64,70 @@ class BinarySearchTree{
 //            else return BinarySearchTree::searchBST(key, bst->right);
 //        }
 
-        static BinaryTree* sortedArrayToBSTHelper(vector<int> arr, int start, int end) {
-            if(start == end) return new BinaryTree(arr[start], NULL,NULL);
-            int mid = floor((start+end)/2);
+    static BinaryTree* sortedArrayToBSTHelper(vector<int> arr, int start, int end) {
+        if(start == end) return new BinaryTree(arr[start], NULL,NULL);
+        int mid = floor((start+end)/2);
 
-            BinaryTree* left = NULL;
-            if(mid-1 >= start) left = BinarySearchTree::sortedArrayToBSTHelper(arr, start, mid-1);
+        BinaryTree* left = NULL;
+        if(mid-1 >= start) left = BinarySearchTree::sortedArrayToBSTHelper(arr, start, mid-1);
 
-            BinaryTree* right = NULL;
-            if(mid+1 <= end) right = BinarySearchTree::sortedArrayToBSTHelper(arr, mid+1, end);
+        BinaryTree* right = NULL;
+        if(mid+1 <= end) right = BinarySearchTree::sortedArrayToBSTHelper(arr, mid+1, end);
 
-            BinaryTree* root = new BinaryTree(arr[mid], left, right);
-            return root;
+        BinaryTree* root = new BinaryTree(arr[mid], left, right);
+        return root;
+    }
+
+
+    static BinaryTree* insert(BinaryTree* root, int key){
+        if(root == NULL){
+            BinaryTree* newNode = new BinaryTree(key);
+            newNode->left = NULL;
+            newNode->right = NULL;
+            root = newNode;
+
+        } else if(key < root->data){
+            root->left = insert(root->left, key);
+
+        } else {
+            root->right = insert(root->right, key);
         }
+        return root;
+    }
     
+    static BinaryTree* FindMin(BinaryTree* root){
+        while(root->left != NULL) root = root->left;
+        return root;
+    }
     
-        static BinaryTree* insert(BinaryTree* root, int key){
-            if(root == NULL){
-                BinaryTree* newNode = new BinaryTree(key);
-                newNode->left = NULL;
-                newNode->right = NULL;
-                root = newNode;
-
-            } else if(key < root->data){
-                root->left = insert(root->left, key);
-
+    static BinaryTree* deleteNode(BinaryTree* root, int key){
+        if(root == NULL) return NULL;
+        else if(key < root->data) {
+            root->left = deleteNode(root->left, key);
+        } else if(key > root->data){
+            root->right = deleteNode(root->right, key);
+        } else {
+            if(root->left == NULL && root->right == NULL){
+                delete root;
+                root = NULL;
+            } else if(root->left == NULL){
+                BinaryTree* temp = root;
+                root = root->right;
+                delete temp;
+            } else if(root->right == NULL){
+                BinaryTree* temp = root;
+                root = root->left;
+                delete temp;
             } else {
-                root->right = insert(root->right, key);
+                BinaryTree* temp = FindMin(root->right);
+                root->data = temp->data;
+                root->right = deleteNode(root->right, temp->data);
             }
-            return root;
         }
+        
+        return root;
+    }
+    
     
     static void printSorted(BinaryTree* root){
         root->inOrderWalk(root);
@@ -108,7 +142,7 @@ int main(){
     BinarySearchTree::insert(bst->root, 5);
     BinarySearchTree::printSorted(bst->root);
     cout << endl;
-
+    BinarySearchTree:: deleteNode(bst->root, 96);
     BinarySearchTree::insert(bst->root, 47);
     BinarySearchTree::printSorted(bst->root);
 }
