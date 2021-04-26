@@ -40,7 +40,7 @@ public:
         Heap::buildMaxHeap(array);
         int heapEnd = array.size() - 1;
         while(heapEnd > 0){
-            int temp = array[heapEnd];
+            int temp = array[h  eapEnd];
             array[heapEnd] = array[0];
             array[0] = temp;
             heapEnd--;

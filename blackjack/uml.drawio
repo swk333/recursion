@@ -1,0 +1,34 @@
+<mxfile>
+    <diagram id="sZUxP7IMYcRehHt-g45I" name="Page-1">
+        <mxGraphModel dx="1106" dy="680" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="Class Card&lt;br&gt;&lt;br&gt;this.suit : string&lt;br&gt;this.rank : string&lt;br&gt;&lt;br&gt;int getRankNumber() :&amp;nbsp;&lt;br&gt;//カードランクを返す" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="50" width="180" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="Class Deck&lt;br&gt;&lt;br&gt;Deck(gameType:string)&lt;br&gt;this.gametype:string&lt;br&gt;this.cards: vector&lt;br&gt;&lt;br&gt;Card drawOne()&lt;br&gt;void shuffle()&lt;br&gt;void resetDeck()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="50" width="180" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="Class Player&lt;br&gt;&lt;br&gt;Player(name:string, type:string, gameType: string, ?chips: int)&lt;br&gt;this.name&lt;br&gt;this.type&lt;br&gt;this.gameType&lt;br&gt;this.hand = []&lt;br&gt;this.chips&lt;br&gt;this.bet = 0&lt;br&gt;this.winAmount = 0&lt;br&gt;this.gameStatus = betting&lt;br&gt;{betting, acting, surrender, stand, hit, double, bust, double bust, broken}&lt;br&gt;&lt;br&gt;GameDecision promptPlayer(userData: int) &lt;br&gt;//タイプ、手札、チップを含むプレイヤーの状態を読み取り、GameDecisionを返す&lt;br&gt;&lt;br&gt;&lt;br&gt;winAmount(): int&lt;br&gt;&lt;br&gt;getHandScore():int" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="50" width="330" height="400" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1.009;entryY=0.529;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="6" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Class GameDecision&lt;br&gt;&lt;br&gt;GameDecision(action: string, amount:int)&lt;br&gt;this.action:string &lt;br&gt;//{'bet', 'surrender', 'stand', 'hit', 'double'}&lt;br&gt;this.amount:int" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="70" width="253" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="7" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="Class Table&lt;br&gt;&lt;br&gt;Table(gameType: string, betDenominations: vector =&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(220 , 220 , 220)&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(181 , 206 , 168)&quot;&gt;5&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(220 , 220 , 220)&quot;&gt;,&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(181 , 206 , 168)&quot;&gt;20&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(220 , 220 , 220)&quot;&gt;,&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(181 , 206 , 168)&quot;&gt;50&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(220 , 220 , 220)&quot;&gt;,&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(181 , 206 , 168)&quot;&gt;100&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; color: rgb(220 , 220 , 220)&quot;&gt;]&lt;/span&gt;&lt;span&gt;)&lt;/span&gt;&lt;br&gt;this.gameType&lt;br&gt;this.betDenominations&lt;br&gt;this.deck = new Deck(this.gameType)&lt;br&gt;this.players = []&lt;br&gt;this.house = new Player(&quot;house&quot;, &quot;house&quot;, this.gameType)&lt;br&gt;this.gamePhase = &quot;betting&quot; // {'betting', 'acting', 'evaluatingWinners, gameOver'} から選択。&lt;br&gt;this.resultsLog = [];&lt;br&gt;this.turnCounter&lt;br&gt;&lt;br&gt;void evaluateMove(Player) // playerの状態を更新する&lt;br&gt;string bjEvaluateAndGetRoundResult() //新しいターンが始まる前の全プレイヤーの状態を表す&lt;br&gt;void bjAssignPlayerHands() //2枚のカードを手札に加える&lt;br&gt;void bjClearPlayerHandsAndBets()//playerの状態をすべてクリア&lt;br&gt;Player getTurnPlayer()&lt;br&gt;void haveTurn(? userData:int)&amp;nbsp;&lt;br&gt;　gamePhaseのチェック&lt;br&gt;　getTurnPlayer() 現在のプレイヤーを取得&lt;br&gt;　Player.promptPlayer() プレイヤーにアクションを促す&lt;br&gt;　evaluateMove()　プレイヤーの状態を評価して更新&lt;br&gt;　turnCounter ++&lt;br&gt;　gamePhaseの更新&lt;br&gt;&amp;nbsp; &amp;nbsp;roundOverならresultLogの更新&lt;br&gt;&amp;nbsp;&lt;br&gt;&lt;br&gt;bool onFirstPlayer()&lt;br&gt;bool onLastPlayer()&lt;br&gt;bool allPlayerActionsResolved()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="540" width="730" height="520" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="&lt;div style=&quot;line-height: 18px&quot;&gt;&lt;div&gt;let table1 = new Table(&quot;ai&quot;, &quot;blackjack&quot;);&lt;/div&gt;&lt;div&gt;while(table1.gamePhase != 'roundOver'){&lt;/div&gt;&lt;div&gt;    table1.haveTurn();&lt;/div&gt;&lt;div&gt;}&lt;/div&gt;&lt;br&gt;&lt;div&gt;// 初期状態では、ハウスと2人以上のA.Iプレーヤーが戦います。&lt;/div&gt;&lt;div&gt;console.log(table1.resultsLog);&lt;/div&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="860" y="550" width="310" height="160" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
