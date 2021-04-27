@@ -172,11 +172,12 @@ class Player
 
     /*
        ?Number userData : モデル外から渡されるパラメータ。nullになることもあります。
+
        return GameDecision : 状態を考慮した上で、プレイヤーが行った決定。
 
         このメソッドは、どのようなベットやアクションを取るべきかというプレイヤーの決定を取得します。プレイヤーのタイプ、ハンド、チップの状態を読み取り、GameDecisionを返します。パラメータにuserData使うことによって、プレイヤーが「user」の場合、このメソッドにユーザーの情報を渡すことができますし、プレイヤーが 「ai」の場合、 userDataがデフォルトとしてnullを使います。
     */
-    promptPlayer(userData = {"betAmount": 100, "action": "hit"})
+    promptPlayer(userData)
     {
 
         let betAmount = 0;
@@ -212,9 +213,9 @@ class Player
         } else {
             if(this.gameStatus === "betting"){
                 action = "bet";
-                betAmount = userData[betAmount];
+                betAmount = userData;
             } else if(this.gameStatus === "acting"){
-                action = userData[action];
+                action = userData;
             }
         }
             
@@ -239,19 +240,6 @@ class Player
 
         return score;
     }
-
-    // winAmount()
-    // {
-        
-    //     let winAmountMoney = this.bet;
-
-    //     if(this.gameStatus === "bust"){
-    //         winAmountMoney = this.bet * -1;
-    //     }
-    //     this.winAmount = winAmountMoney;
-
-    //     return winAmountMoney;
-    // }
 }
 
 class GameDecision
@@ -313,9 +301,9 @@ class Table
         EX:
         プレイヤーが「ヒット」し、手札が21以上の場合、gameStatusを「バスト」に設定し、チップからベットを引きます。
     */
-    evaluateMove(Player)
+    evaluateMove(Player, userData)
     {
-        const GD = Player.promptPlayer();
+        const GD = Player.promptPlayer(userData);
         const betAmount = GD.amount;
         const action = GD.action;
 
@@ -378,22 +366,29 @@ class Table
                 player.chips -= player.bet * 2;
             } else if(player.gameStatus === "surrender"){
                 player.chips -= Math.floor(player.bet / 2);
-            } else if(player.gameStatus === ("stand" || "double" || "hit")){
+                //hitのステータスはないはず
+            } else if(player.gameStatus === ("stand" || "double")){
+                //houseがbustの場合
+                if(this.house.gameStatus === "bust"){
+                    player.winAmount = player.bet;
+                    player.chips += player.winAmount;
+                }
 
                 //todo:blackjackの場合
 
 
                 //blackjack以外の場合
-                if(player.getHandScore() > house.getHandScore()){
+                else if(score > house.getHandScore()){
                     player.winAmount = player.bet;
                     player.chip += player.winAmount;
-                } else if(player.getHandScore() < house.getHandScore()){
+                } else if(score < house.getHandScore()){
                     player.chip -= player.bet;
                 }
             }
             
             log += ["name:" + player.name + ", action:" + player.gameStatus + ", bet:" + player.bet + ", won:" + player.winAmount + ", chip:" + player.chips + "/ "];
         }
+        console.log(log);
         return log;
     }
 
@@ -440,9 +435,6 @@ class Table
     {   
         const player = this.getTurnPlayer();
         const gamePhase = this.gamePhase;
-        if(player.type === "user"){
-            console.log("user in haveTurn");
-        }
 
         //betting Phase
         if(gamePhase === "betting"){
@@ -450,7 +442,7 @@ class Table
             if(this.onFirstPlayer()){
                 this.blackjackClearPlayerHandsAndBets();
             }
-            this.evaluateMove(player);
+            this.evaluateMove(player, userData);
             this.turnCounter++;
             //betが終わったらgamePhaseをactingに移行し、初回カードを配る
             if(this.onLastPlayer()){
@@ -463,7 +455,7 @@ class Table
             if(player.gameStatus === ("bust" || "stand" || "surrender" || "doublebust" || "broken" || "double")){
                 this.turnCounter++;
             } else {
-                this.evaluateMove(player);
+                this.evaluateMove(player, userData);
                 this.turnCounter++;
             }
 
@@ -519,18 +511,14 @@ class Table
     }
 };
 
-// let table1 = new Table("blackjack");
-// while(table1.gamePhase != 'roundOver'){
-//     table1.haveTurn();
-// }
-    
-// console.log(table1.resultsLog);
-
-
 
 
 class Rendering {
-    
+    /*---
+    Method 
+    */
+
+
     static initializeGame(){
         const gameDiv = document.getElementById("gameDiv");
         gameDiv.innerHTML = `
@@ -563,7 +551,8 @@ class Rendering {
         });
     }
 
-    static renderTable(table){
+    static renderTable(table){ 
+
         const gameDiv = document.getElementById("gameDiv");
         const bettingView = `
         <!-- all cards (dealer, players) div -->
@@ -576,30 +565,22 @@ class Rendering {
       
                     <div class="bg-white border mx-2">
                         <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
+                            <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
                         </div>
                         <div class="text-center">
-                            <p class="m-0 ">7</p>
+                            <p class="m-0 ">?</p>
                         </div>
                     </div>
       
                     <div class="bg-white border mx-2">
                         <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/diamond.png" alt="" width="50" height="50">
+                            <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
                         </div>
                         <div class="text-center">
-                            <p class="m-0">8</p>
+                            <p class="m-0">?</p>
                         </div>
                     </div>
-      
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0">9</p>
-                        </div>
-                    </div>
+
                 </div>
             </div>
       
@@ -615,36 +596,29 @@ class Rendering {
       
                         <!-- playerInfoDiv -->
                         <div class="text-white d-flex m-0 p-0 justify-content-between">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
+                            <p class="rem1 text-left">S:${table.players[1].gameStatus}&nbsp;</a>
+                            <p class="rem1 text-left">B:${table.players[1].bet}&nbsp;</a>
+                            <p class="rem1 text-left">C:${table.players[1].chips}&nbsp;</a>
                         </div>
                         <!-- cardsDiv -->
                         <div class="d-flex justify-content-center">
                             <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
+                            <div class="text-center">
+                                <p class="m-0 ">?</p>
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
+                        </div>
+        
+                        <div class="bg-white border mx-2">
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
+                            </div>
+                            <div class="text-center">
+                                <p class="m-0">?</p>
+                            </div>
+                        </div>
                         </div><!-- end Cards -->
                     </div><!-- end player -->
       
@@ -654,78 +628,64 @@ class Rendering {
       
                         <!-- playerInfoDiv -->
                         <div class="text-white d-flex m-0 p-0 justify-content-center">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
+                        <p class="rem1 text-left">S:${table.players[2].gameStatus}&nbsp;</a>
+                        <p class="rem1 text-left">B:${table.players[2].bet}&nbsp;</a>
+                        <p class="rem1 text-left">C:${table.players[2].chips}&nbsp;</a>
                         </div>
       
                         <!-- cardsDiv -->
                         <div class="d-flex justify-content-center">
                             <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
+                            <div class="text-center">
+                                <p class="m-0 ">?</p>
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
+                        </div>
+        
+                        <div class="bg-white border mx-2">
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
+                            </div>
+                            <div class="text-center">
+                                <p class="m-0">?</p>
+                            </div>
+                        </div><!-- end card -->
                         </div><!-- end Cards -->
                     </div><!-- end player -->
       
                     <!-- nonCurPlayer2Div -->
                     <div id="nonCurPlayer2Div" class="flex-column">
       
-                        <p class="m-0 text-white text-center rem3">${table.players[table.players.length - 1].name}</p>
+                        <p class="m-0 text-white text-center rem3">${table.players[0].name}</p>
       
                         <!-- playerInfoDiv -->
                         <div class="text-white d-flex m-0 p-0 justify-content-between">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
+                        <p class="rem1 text-left">S:${table.players[0].gameStatus}&nbsp;</a>
+                        <p class="rem1 text-left">B:${table.players[0].bet}&nbsp;</a>
+                        <p class="rem1 text-left">C:${table.players[0].chips}&nbsp;</a>
                         </div>
       
                         <!-- cardsDiv -->
                         <div class="d-flex justify-content-center">
                             <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
+                            <div class="text-center">
+                                <p class="m-0 ">?</p>
                             </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
+                        </div>
+        
+                        <div class="bg-white border mx-2">
+                            <div class="text-center">
+                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
+                            </div>
+                            <div class="text-center">
+                                <p class="m-0">?</p>
+                            </div>
+                        </div> <!-- end card -->
                         </div><!-- end Cards -->
                     </div><!-- end player -->
                 </div><!-- end players -->
@@ -744,7 +704,7 @@ class Rendering {
                                             -
                                         </button>
                                     </span>
-                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="3">
+                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="0" min="0" max="">
                                     <span class="input-group-btn">
                                         <button type="button" class="btn btn-success btn-number">
                                             +
@@ -807,7 +767,7 @@ class Rendering {
                         </div><!-- end bestSelectionDiv -->
                         <!-- betSubmitDiv -->
                         <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary">
-                            Submit your bet
+                            Submit your bet 
                         </div><!-- end betSubmitDiv -->
                     </div><!-- end betsDiv-->
       
@@ -815,232 +775,231 @@ class Rendering {
             </div>
         </div>
         `
-        const actingView =`
-        <!-- all cards (dealer, players) div -->
-        <div class="col-12">
-            <div class="pt-5">
-                <p class="m-0 text-center text-white rem3">Dealer</p>
-    
-                <!-- House Card Row -->
-                <div id="houesCardDiv" class="d-flex justify-content-center pt-3 pb-5">
-    
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0 ">7</p>
-                        </div>
-                    </div>
-    
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/diamond.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0">8</p>
-                        </div>
-                    </div>
-    
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0">9</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-    
-            <div class="">
-    
-                <!-- Players Div -->
-                <div id="playersDiv" class="d-flex justify-content-center">
-    
-                    <!-- nonCurPlayerDiv 1-->
-                    <div id="nonCurPlayer1Div" class="flex-column">
-    
-                        <p class="m-0 text-white text-center rem3">ai1</p>
-    
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-between">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
-                        </div>
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-    
-                    <!-- curPlayerDiv -->
-                    <div id = "curPlayerDiv" class="flex-column w-50">
-                        <p class="m-0 text-white text-center rem3">ai2</p>
-    
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-center">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
-                        </div>
-    
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-    
-                    <!-- nonCurPlayer2Div -->
-                    <div id="nonCurPlayer2Div" class="flex-column">
-    
-                        <p class="m-0 text-white text-center rem3">Yuki</p>
-    
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-between">
-                            <p class="rem1 text-left">S:BUST </a>
-                            <p class="rem1 text-left">B:0 </a>
-                            <p class="rem1 text-left">R:255 </a>
-                        </div>
-    
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/heart.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">2</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/clover.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">10</p>
-                                </div>
-                            </div>
-                            <div class="bg-white border mx-2">
-                                <div class="text-center">
-                                    <img src="/img/dashboard/lessons/projects/spade.png" alt="" width="50" height="50">
-                                </div>
-                                <div class="text-center">
-                                    <p class="m-0">8</p>
-                                </div>
-                            </div><!-- end card -->
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-                </div><!-- end players -->
-    
-                <!-- actionsAndBetsDiv -->
-                <div id="actionsAndBetsDiv" class="d-flex pb-5 pt-4 justify-content-center">
-    
-                    <!-- actionsDiv -->
-                    <div id ="actionsDiv" class="d-flex flex-wrap w-70">
-                        <div class="py-2">
-                            <a class="text-dark btn btn-light px-5 py-1">Surrender</a>
-                        </div>
-                        <div class="py-2">
-                            <a class="btn btn-success px-5 py-1">Stand</a>
-                        </div>
-                        <div class="py-2">
-                            <a class="btn btn-warning px-5 py-1">Hit</a>
-                        </div>
-                        <div class="py-2">
-                            <a class="btn btn-danger px-5 py-1">Double</a>
-                        </div>
-                    </div> <!-- end actionsDiv -->
-                </div><!-- end actionsAndBetsDiv-->
-            </div>
-        </div>
-        `
-        console.log(table)
 
         if(table.getTurnPlayer().type === "user"){
             if(table.gamePhase === "betting"){
                 gameDiv.innerHTML = bettingView;
-                
-                document.getElementById("bet-submit").addEventListener("click", function(){
-                    table.haveTurn();
-                    Rendering.renderTable(table);
-                });
+                Rendering.renderingBtn(table);
                 
             } else if(table.gamePhase === "acting"){
-                gameDiv.innerHTML = actingView;
+                gameDiv.innerHTML = ``;
+                gameDiv.append(Rendering.renderingActionView(table));
+                // Rendering.renderingActionBtn(table);
             }
-            
-            
+            // } else {
+            //     table.haveTurn();
+            // }
+
+        } else if(table.getTurnPlayer().type === "house" && table.gamePhase === "roundOver") {
+            gameDiv.innerHTML += `${table.resultsLog}`;
+
         } else {
             setTimeout(function(){
                 table.haveTurn();
                 Rendering.renderTable(table);
-            }, 1000)
+            }, 500)
         }
-        
-
-        
+        console.log(table)
     }
-    /*
-    renderTable(table): // 画面をクリアして、新しいビューを画面に追加します。このビューは、テーブルに渡されたものを視覚的にレンダリングします。
-if table.getTurnPlayer().type == 'user'
-    - もしgamePhaseが"bets"なら、ベットビューを追加します。
-    - gamePhaseが"acting"で、ユーザーがアクションを取ることができる場合は、アクションビューを追加します。
-    - これらの追加のビューにはイベントリスナーが接続されており、コントローラとして動作します。これらのコントローラは userDataをビュー（<input type = "text">など）から手に入れてhaveTurnに渡し、その後 renderTable(table) を呼び出して更新された状態を表示します。
-    - 追加のロジック
+    //betbuttonのレンダリング return null
+    static renderingBtn(table){
+        
+        const inputNumbers = document.querySelectorAll(".input-number");
+        const deno = table.betDenominations;
+        const chip = table.players[0].chips;
 
-else
-    - プレイヤーが考えているかのように錯覚させるためにx秒待ちます。
-    - table.haveTurn()
-    - renderTable(table)
-    */
-};
+        //ボタン操作
+        const btnNumbers = document.querySelectorAll(".btn-number");
+        btnNumbers.forEach((btnNumber, index) => {
+            const denoIndex = Math.floor(index/2);
+            if(index % 2 === 0){
+                btnNumber.addEventListener("click", () => {
+                    if(inputNumbers[denoIndex].value > 0){
+                        inputNumbers[denoIndex].value--;
+                    }
+                });
+            } else {
+                    btnNumber.addEventListener("click", () => {
+                        let bet = 0;
+                        inputNumbers.forEach((inputNumber, index) => {
+                            bet += inputNumber.value * deno[index];
+                        })
+                        if(bet < chip){
+                            inputNumbers[denoIndex].value++;
+                        }
+                    });
+            }
+        });
+        //submitボタン
+        document.getElementById("bet-submit").addEventListener("click", function(){
+            let bet = 0;
+            inputNumbers.forEach((inputNumber, index) => {
+                bet += inputNumber.value * deno[index];
+            })
+            table.haveTurn(bet);
+            Rendering.renderTable(table);
+        });
+
+
+    };
+
+    //actingViewのレンダリング
+    static renderingActionView(table){
+        const actingDiv = document.createElement("div");
+        actingDiv.classList.add("pt-5");
+        actingDiv.append(Rendering.renderingHouseInfo(table));
+
+        for(let i = 0; i < table.players.length - 1 ; i++){
+            actingDiv.append(Rendering.renderingPlayerInfo(table.players[i]));
+            actingDiv.append(Rendering.renderingCard(table.players[i]));
+        }
+
+        const actionsBtn = document.createElement("div");
+        actionsBtn.classList.add("d-flex", "flex-wrap", "w-70");
+        actionsBtn.innerHTML = `
+            <div class="py-2">
+                <a id="surrender" class="action-btn text-dark btn btn-light px-5 py-1">Surrender</a>
+            </div>
+            <div class="py-2">
+                <a id="stand" class="action-btn btn btn-success px-5 py-1">Stand</a>
+            </div>
+            <div class="py-2">
+                <a id="hit" class="action-btn btn btn-warning px-5 py-1">Hit</a>
+            </div>
+            <div class="py-2">
+                <a id="double" class="action-btn btn btn-danger px-5 py-1">Double</a>
+            </div>
+            `
+        actingDiv.append(actionsBtn);
+
+
+        //null値確認しないと動かない
+
+        if(actingDiv.querySelector("#surrender") != null){
+            actingDiv.querySelector("#surrender").addEventListener("click", function(){
+                table.haveTurn("surrender");
+                Rendering.renderTable(table);
+            })
+        }
+        if(actingDiv.querySelector("#stand") != null) {
+            actingDiv.querySelector("#stand").addEventListener("click", function(){
+                table.haveTurn("stand");
+                Rendering.renderTable(table);
+            })        
+        }
+        if(actingDiv.querySelector("#hit") != null){
+            actingDiv.querySelector("#hit").addEventListener("click", function(){
+                table.haveTurn("hit");
+                Rendering.renderTable(table);
+            })        
+        }
+        if(actingDiv.querySelector("#double") != null){
+            actingDiv.querySelector("#double").addEventListener("click", function(){
+                table.haveTurn("double");
+                Rendering.renderTable(table);
+            })
+            
+        }
+
+
+        // const user = table.players[0];
+        // if(user.gameStatus === "surrender" || user.gameStatus === "bust"){
+        //     const actionBtns = document.querySelectorAll("action-btn");
+        //     actionBtns.forEach((actionBtn) => {
+        //         actionBtn.classList.add("disabled");
+        //     })
+        // }
+        return actingDiv;
+
+    }
+    //actingViewBtnのレンダリング
+    // static renderingActionBtn(table){
+    //     document.querySelector("#surrender").addEventListener("click", function(){
+    //         table.haveTurn("surrender");
+    //         Rendering.renderTable(table);
+    //     })
+    //     document.querySelector("#stand").addEventListener("click", function(){
+    //         table.haveTurn("stand");
+    //         Rendering.renderTable(table);
+    //     })        
+    //     document.querySelector("#hit").addEventListener("click", function(){
+    //         table.haveTurn("hit");
+    //         Rendering.renderTable(table);
+    //     })        
+    //     document.querySelector("#double").addEventListener("click", function(){
+    //         table.haveTurn("double");
+    //         Rendering.renderTable(table);
+    //     })
+
+
+    // }
+
+    //cardDivのレンダリング
+    static renderingCard(player){
+
+        const cardDiv = document.createElement("div");
+        cardDiv.classList.add("d-flex", "justify-content-center", "pt-3", "pb-5");
+        player.hand.forEach((card, index) => {
+            cardDiv.innerHTML += `
+            <div class="bg-white border mx-2">
+                <div class="text-center">
+                    <img src=${(card === undefined)? "" :cardimg[card.suit]} alt="" width="50" height="50">
+                </div>
+                <div class="text-center">
+                    <p class="m-0 ">${(card === undefined)? "" :card.rank}</p>
+                </div>
+            </div>
+            `
+        });
+
+
+
+        return cardDiv;
+    }
+
+    //player情報のレンダリング
+    static renderingPlayerInfo(player){
+        const playerInfoDiv = document.createElement("div");
+        playerInfoDiv.classList.add("text-white", "d-flex", "m-0", "p-0", "justify-content-center");
+        playerInfoDiv.innerHTML = `
+            <p class="rem1 text-left">S:${player.gameStatus} </p>
+            <p class="rem1 text-left">B:${player.bet} </p>
+            <p class="rem1 text-left">R:${player.chips} </p>
+        `
+        return playerInfoDiv;
+    }
+    //house情報のレンダリング actingView用
+    static renderingHouseInfo(table){
+        const house = table.house;
+
+        const houseInfoDiv = document.createElement("div");
+        houseInfoDiv.innerHTML = `
+            <p class="text-center text-white rem3">Dealer</p>
+            <p class="rem1 text-center text-white">S:${house.gameStatus}</p>
+
+            <div id="houesCardDiv" class="d-flex justify-content-center pt-3 pb-5">
+
+                <div class="bg-white border mx-2">
+                    <div class="text-center">
+                        <img src=${(house.hand[0] === undefined)? "" :cardimg[house.hand[0].suit]} alt="" width="50" height="50">
+                    </div>
+                    <div class="text-center">
+                        <p class="m-0 ">${(house.hand[0] === undefined)? "" :house.hand[0].rank}</p>
+                    </div>
+                </div>
+
+            </div>
+        `
+       return houseInfoDiv;
+    }
+}
+
+const cardimg = {
+    "H": "https://recursionist.io/img/dashboard/lessons/projects/heart.png", 
+    "D": "https://recursionist.io/img/dashboard/lessons/projects/diamond.png", 
+    "C": "https://recursionist.io/img/dashboard/lessons/projects/clover.png", 
+    "S": "https://recursionist.io/img/dashboard/lessons/projects/spade.png",
+}
 
 Rendering.initializeGame();
+
