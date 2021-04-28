@@ -96,7 +96,6 @@ class Deck
     */
     resetDeck()
     {
-      // this.cards = [];
       const suits = ["H", "D", "C", "S"];
       const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
       for(let i = 0; i < suits.length; i++){
@@ -119,7 +118,6 @@ class Deck
       return card;
     }
 }
-
 
 /*--
 // Playerモデルのアップデート
@@ -180,6 +178,8 @@ class Player
     promptPlayer(userData)
     {
 
+        //this.gameStatus -> betting, acting, hit
+
         let betAmount = 0;
         let action = this.gameStatus;
 
@@ -192,17 +192,27 @@ class Player
             } 
             //acting phaseの処理
             else if(this.gameStatus === "acting"){
-                const choices = ["surrender", "stand", "hit", "double"];
-                const i = Math.floor(Math.random() * 4);
+                if(this.getHandScore() === 21){
+                    action = "stand";
+                } else {
+                    const choices = ["surrender", "stand", "hit", "double"];
+                    const i = Math.floor(Math.random() * 4);
+                    const choice = choices[i];
+                    action = choice;
+                }
+            } else { //hitのとき
+                const choices = ["surrender", "stand", "hit"];
+                const i = Math.floor(Math.random() * 3);
                 const choice = choices[i];
-                action = choice;
+                action = choice;      
             }
         //houseの場合
         } else if(this.type === "house"){
             betAmount = -1;
             if(this.gameStatus === "betting"){
                 action = "bet";
-            } else if(this.gameStatus === "acting"){
+            } else{
+                console.log(this.getHandScore());
                 if(this.getHandScore() < 17) {
                     action = "hit";
                 } else {
@@ -214,9 +224,9 @@ class Player
             if(this.gameStatus === "betting"){
                 action = "bet";
                 betAmount = userData;
-            } else if(this.gameStatus === "acting"){
+            } else { // acting or hit のとき
                 action = userData;
-            }
+            } 
         }
             
         let GD = new GameDecision(action, betAmount);
@@ -260,7 +270,6 @@ class GameDecision
     }
 }
 
-
 class Table
 {
     /*
@@ -303,40 +312,42 @@ class Table
     */
     evaluateMove(Player, userData)
     {
+        // {betting, acting, surrender, stand, hit, double, bust, doublebust, broken}
+
+        //gameStatus -> acting / hit
         const GD = Player.promptPlayer(userData);
         const betAmount = GD.amount;
         const action = GD.action;
-
         //betting終了時の処理
         if(action === "bet"){
             Player.gameStatus = "acting";
             Player.bet = betAmount;
-        } else {
-            
-        //acting最中の処理
-            if(action === "surrender"){
-                Player.gameStatus = action;
-
-            } else if(action === "hit"){
-                Player.gameStatus = "acting";
-                Player.hand.push(this.deck.drawOne());
-
-            } else if(action === "double"){
-                Player.gameStatus = action;
-                Player.bet = Player.bet * 2;
-                Player.hand.push(this.deck.drawOne());  
-
-            } else if(action === "stand"){
-                Player.gameStatus = action;
+        } else if(action === "surrender"){
+            Player.gameStatus = "surrender";
+        } else if(action === "hit"){
+            Player.gameStatus = "hit";
+            Player.hand.push(this.deck.drawOne());
+            if(Player.getHandScore() > 21){
+                Player.gameStatus = "bust";
             }
+        } else if(action === "double"){
+            Player.bet = Player.bet * 2;
+            Player.hand.push(this.deck.drawOne());  
+            if(Player.getHandScore() > 21){
+                Player.gameStatus = "doublebust";
+            } else {
+                Player.gameStatus = "doublestand";
+            }
+
+        } else if(action === "stand"){
+            Player.gameStatus = "stand";
+            if(Player.getHandScore() > 21){
+                Player.gameStatus = "bust";
+            }
+        } else {
+            console.log("該当なし！！");
         }
 
-        const score = Player.getHandScore();
-        if(score > 21 && Player.gameStatus === "double"){
-            Player.gameStatus = "doublebust";
-        } else if(score > 21){
-            Player.gameStatus = "bust";
-        }
         //brokenの処理
         if(Player.chips < 0){
             Player.gameStatus = "broken";
@@ -351,7 +362,8 @@ class Table
     */
     blackjackEvaluateAndGetRoundResults()
     {
-        
+        //todo blackjackの処理
+        //chipが変更されてないエラー
 
         let log = [];
         for(let i = 0; i < this.players.length; i++){
@@ -366,30 +378,41 @@ class Table
                 player.chips -= player.bet * 2;
             } else if(player.gameStatus === "surrender"){
                 player.chips -= Math.floor(player.bet / 2);
-                //hitのステータスはないはず
-            } else if(player.gameStatus === ("stand" || "double")){
+                //hitのステータスはないはず?
+            } else if(player.gameStatus === "stand" || player.gameStatus === "double"){
                 //houseがbustの場合
                 if(this.house.gameStatus === "bust"){
                     player.winAmount = player.bet;
                     player.chips += player.winAmount;
-                }
-
-                //todo:blackjackの場合
-
-
-                //blackjack以外の場合
-                else if(score > house.getHandScore()){
+                } else if(this.isBlackjack(house.hand)) {
+                    console.log("house is blackjack");
+                } else if(this.isBlackjack(player.hand)){
+                    console.log("player is blackjack");
+                } else if(score > house.getHandScore()){
                     player.winAmount = player.bet;
                     player.chip += player.winAmount;
                 } else if(score < house.getHandScore()){
                     player.chip -= player.bet;
                 }
             }
-            
             log += ["name:" + player.name + ", action:" + player.gameStatus + ", bet:" + player.bet + ", won:" + player.winAmount + ", chip:" + player.chips + "/ "];
         }
+
         console.log(log);
         return log;
+    }
+
+    isBlackjack(cards){
+        let cardIsBJ = false;
+        console.log(cards);
+        const faceCards = ["J", "Q", "K"];
+        if(cards[0].suit === "A" && faceCards.find(cards[1].suit)){
+            cardIsBJ = true;
+        } else if(cards[1].suit === "A" && faceCards.find(cards[0].suit)){
+            cardIsBJ = true;
+        }
+        console.log(cardIsBJ);
+        return cardIsBJ;
     }
 
     /*
@@ -413,6 +436,8 @@ class Table
         for(let i = 0; i < this.players.length; i++){
             this.players[i].hand = [];
             this.players[i].bet = 0;
+            this.players[i].gameStatus = "betting";
+            this.players[i].winAmount = 0;
         }
     }
     
@@ -436,43 +461,39 @@ class Table
         const player = this.getTurnPlayer();
         const gamePhase = this.gamePhase;
 
-        //betting Phase
         if(gamePhase === "betting"){
             //一人目ならベット額とハンドを空にする
             if(this.onFirstPlayer()){
                 this.blackjackClearPlayerHandsAndBets();
+                // this.house.gameStatus = "waitingForBets"
             }
             this.evaluateMove(player, userData);
-            this.turnCounter++;
             //betが終わったらgamePhaseをactingに移行し、初回カードを配る
             if(this.onLastPlayer()){
                 this.blackjackAssignPlayerHands();
                 this.gamePhase = "acting";
+                // this.house.gameStatus = "waitingForActions"
             }
-        //acting Phase
         } else if(gamePhase === "acting"){ 
-            //bustの処理?
-            if(player.gameStatus === ("bust" || "stand" || "surrender" || "doublebust" || "broken" || "double")){
-                this.turnCounter++;
-            } else {
+            if(player.gameStatus === "acting" || player.gameStatus === "hit"){ 
                 this.evaluateMove(player, userData);
-                this.turnCounter++;
-            }
+            } 
 
             //すべてのプレイヤーがアクションを終えたらevaluatingWinnerに移行する
-
             if(this.allPlayerActionsResolved()) this.gamePhase = "evaluatingWinner";
         
-        //evaluatingWinner Phase
         } else if(gamePhase === "evaluatingWinner"){
             this.resultsLog += this.blackjackEvaluateAndGetRoundResults();
-            this.turnCounter = 0;
             this.gamePhase = "roundOver";
-        
-        } 
+        } else {
+            this.gamePhase = "betting";
+            this.deck.resetDeck();
+            
+        }
 
-  
+        this.turnCounter++;
     }
+
 
     /*
         return Boolean : テーブルがプレイヤー配列の最初のプレイヤーにフォーカスされている場合はtrue、そうでない場合はfalseを返します。
@@ -492,7 +513,7 @@ class Table
     {
         const playerNum = this.players.length;
         const playerIndex = this.turnCounter % playerNum;
-        if(playerIndex === playerNum - 1) return true;
+        if(playerIndex === playerNum-1) return true;
         else return false;    
     }
     
@@ -504,26 +525,34 @@ class Table
         let isResolved = true;
         for(let i = 0; i < this.players.length; i++){
             let gameStatus = this.players[i].gameStatus;
-            if(!(gameStatus === "surrender" || gameStatus === "bust" || gameStatus === "broken" || gameStatus === "stand"))
+            if(!(gameStatus === "surrender" || gameStatus === "bust" || gameStatus === "broken" || gameStatus === "stand" || gameStatus === "doublebust" || gameStatus === "doublestand"))
             isResolved = false;
         }
         return isResolved;
     }
-};
 
+
+};
 
 
 class Rendering {
     /*---
     Method 
+    void initializeGame() // tableの初期化、renderTable()の実行
+    void renderTable(table) // レンダリングの実行　ユーザーのアクションを促すときとそれ以外で場合分け
+    void renderingBtn(table) // bettingView : betボタンのレンダリング　あとでDOMでレンダリングに変更してもいい
+    divObj renderingActionView(table) // actionView: actingViewのDiv返す　renderingHouseInfo/renderingPlayerInfo/renderingCard/renderingActionBtn
+    divObj renderingActionBtn(table) // actionView: actionBtnのDiv返す todo: ステータス別のdisabledクラス付与
+    divObj renderingCard(player) //actionView: cardのDiv返す
+    divObj renderingPlayerInfo(player) // actionView: player情報のDiv返す
+    divObj renderingHouseInfo(table) // actionView: house情報のDiv返す
     */
-
 
     static initializeGame(){
         const gameDiv = document.getElementById("gameDiv");
         gameDiv.innerHTML = `
         <!-- login form div -->
-        <div>
+        <div class="d-flex flex-column justify-content-center align-items-center">
             <p class="text-white" > Welcome to Card Game! </p>
             <!-- name field div -->
             <div>
@@ -540,7 +569,8 @@ class Rendering {
             <div>
                 <a class="btn btn-success" id="start">Start Game </a>
             </div>
-        </div>`
+        </div>
+        `
 
         document.getElementById("start").addEventListener("click", function(){
             const name = document.getElementById("name").value;
@@ -550,9 +580,7 @@ class Rendering {
             Rendering.renderTable(table);
         });
     }
-
     static renderTable(table){ 
-
         const gameDiv = document.getElementById("gameDiv");
         const bettingView = `
         <!-- all cards (dealer, players) div -->
@@ -775,41 +803,131 @@ class Rendering {
             </div>
         </div>
         `
+        const currentPlayer = table.getTurnPlayer();
+        console.log(currentPlayer.type);
+        console.log(currentPlayer.gameStatus);
+        if(currentPlayer.type === "user" && currentPlayer.gameStatus === "betting"){
+            // gameDiv.innerHTML = bettingView;
+            gameDiv.innerHTML = ``;
+            gameDiv.append(Rendering.renderingActionView(table));
+            gameDiv.append(Rendering.renderingBtn(table));
 
-        if(table.getTurnPlayer().type === "user"){
-            if(table.gamePhase === "betting"){
-                gameDiv.innerHTML = bettingView;
-                Rendering.renderingBtn(table);
-                
-            } else if(table.gamePhase === "acting"){
-                gameDiv.innerHTML = ``;
-                gameDiv.append(Rendering.renderingActionView(table));
-                // Rendering.renderingActionBtn(table);
-            }
-            // } else {
-            //     table.haveTurn();
-            // }
+        } else if(currentPlayer.type === "user" && (currentPlayer.gameStatus === "acting" || currentPlayer.gameStatus === "hit")){
+            gameDiv.innerHTML = ``;
+            gameDiv.append(Rendering.renderingActionView(table));
+            gameDiv.append(Rendering.renderingActionBtn(table));
 
-        } else if(table.getTurnPlayer().type === "house" && table.gamePhase === "roundOver") {
-            gameDiv.innerHTML += `${table.resultsLog}`;
-
+        } else if(table.gamePhase === "roundOver") {
+            gameDiv.innerHTML = ``;
+            gameDiv.append(Rendering.renderingActionView(table));
+            gameDiv.append(Rendering.renderingResult(table));
+            console.log("stop!!!");
         } else {
+
             setTimeout(function(){
                 table.haveTurn();
                 Rendering.renderTable(table);
+                if(table.gamePhase === "acting"){
+                    gameDiv.innerHTML = ``;
+                    gameDiv.append(Rendering.renderingActionView(table));
+                    gameDiv.append(Rendering.renderingActionBtn(table));
+                }
             }, 500)
         }
-        console.log(table)
+        console.log(table);
     }
-    //betbuttonのレンダリング return null
+
+
     static renderingBtn(table){
-        
-        const inputNumbers = document.querySelectorAll(".input-number");
+        const renderingBtn = document.createElement("div");
+        renderingBtn.classList.add("d-flex", "pb-5", "pt-4", "justify-content-center");
+        renderingBtn.innerHTML = `
+             <!-- betsDiv -->
+            <div id="betsDiv" class="d-flex flex-column w-50">
+                <!-- bottom half of bets including chip increments and submit  -->
+                <div class="py-2 h-60 d-flex justify-content-between">
+                    <!-- betChoiceDiv -->
+                    <div>
+                        <div class="input-group" >
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-danger btn-number">
+                                    -
+                                </button>
+                            </span>
+                            <input type="text" class="input-number text-center" size="2" maxlength="5" value="0" min="0" max="">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success btn-number">
+                                    +
+                                </button>
+                            </span>
+                        </div><!--end input group div -->
+                        <p class="text-white text-center">5</p>
+                    </div> <!-- end betChoiceDiv -->
+                    <!-- betChoiceDiv -->
+                    <div>
+                        <div class="input-group" >
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-danger btn-number">
+                                    -
+                                </button>
+                            </span>
+                            <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success btn-number">
+                                    +
+                                </button>
+                            </span>
+                        </div><!--end input group div -->
+                        <p class="text-white text-center">20</p>
+                    </div> <!-- end betChoiceDiv -->
+                    <!-- betChoiceDiv -->
+                    <div>
+                        <div class="input-group" >
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-danger btn-number">
+                                    -
+                                </button>
+                            </span>
+                            <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success btn-number">
+                                    +
+                                </button>
+                            </span>
+                        </div><!--end input group div -->
+                        <p class="text-white text-center">50</p>
+                    </div> <!-- end betChoiceDiv -->
+                    <!-- betChoiceDiv -->
+                    <div>
+                        <div class="input-group" >
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-danger btn-number">
+                                    -
+                                </button>
+                            </span>
+                            <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success btn-number">
+                                    +
+                                </button>
+                            </span>
+                        </div><!--end input group div -->
+                        <p class="text-white text-center">100</p>
+                    </div> <!-- end betChoiceDiv -->
+                </div><!-- end bestSelectionDiv -->
+                <!-- betSubmitDiv -->
+                <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary">
+                    Submit your bet 
+                </div><!-- end betSubmitDiv -->
+            </div><!-- end betsDiv-->
+            `
+
+        const inputNumbers = renderingBtn.querySelectorAll(".input-number");
         const deno = table.betDenominations;
         const chip = table.players[0].chips;
 
         //ボタン操作
-        const btnNumbers = document.querySelectorAll(".btn-number");
+        const btnNumbers = renderingBtn.querySelectorAll(".btn-number");
         btnNumbers.forEach((btnNumber, index) => {
             const denoIndex = Math.floor(index/2);
             if(index % 2 === 0){
@@ -831,7 +949,7 @@ class Rendering {
             }
         });
         //submitボタン
-        document.getElementById("bet-submit").addEventListener("click", function(){
+        renderingBtn.querySelector("#bet-submit").addEventListener("click", function(){
             let bet = 0;
             inputNumbers.forEach((inputNumber, index) => {
                 bet += inputNumber.value * deno[index];
@@ -840,23 +958,32 @@ class Rendering {
             Rendering.renderTable(table);
         });
 
-
+        return renderingBtn;
     };
 
-    //actingViewのレンダリング
     static renderingActionView(table){
         const actingDiv = document.createElement("div");
         actingDiv.classList.add("pt-5");
         actingDiv.append(Rendering.renderingHouseInfo(table));
 
+        const playersDiv = document.createElement("div");
+        playersDiv.classList.add("d-flex", "justify-content-center");
         for(let i = 0; i < table.players.length - 1 ; i++){
-            actingDiv.append(Rendering.renderingPlayerInfo(table.players[i]));
-            actingDiv.append(Rendering.renderingCard(table.players[i]));
+            const playerDiv = document.createElement("div");
+            playerDiv.classList.add("m-3");
+            playerDiv.append(Rendering.renderingPlayerInfo(table.players[i]));
+            playerDiv.append(Rendering.renderingCard(table.players[i]));
+            playersDiv.append(playerDiv);
         }
+        actingDiv.append(playersDiv);
+        return actingDiv;
 
-        const actionsBtn = document.createElement("div");
-        actionsBtn.classList.add("d-flex", "flex-wrap", "w-70");
-        actionsBtn.innerHTML = `
+    }
+    static renderingActionBtn(table){
+
+        const actionBtn = document.createElement("div");
+        actionBtn.classList.add("d-flex", "flex-wrap", "w-70", "justify-content-center");
+        actionBtn.innerHTML = `
             <div class="py-2">
                 <a id="surrender" class="action-btn text-dark btn btn-light px-5 py-1">Surrender</a>
             </div>
@@ -870,128 +997,143 @@ class Rendering {
                 <a id="double" class="action-btn btn btn-danger px-5 py-1">Double</a>
             </div>
             `
-        actingDiv.append(actionsBtn);
-
-
-        //null値確認しないと動かない
-
-        if(actingDiv.querySelector("#surrender") != null){
-            actingDiv.querySelector("#surrender").addEventListener("click", function(){
+        const currentPlayer = table.getTurnPlayer();
+            actionBtn.querySelector("#surrender").addEventListener("click", function(){
                 table.haveTurn("surrender");
                 Rendering.renderTable(table);
             })
-        }
-        if(actingDiv.querySelector("#stand") != null) {
-            actingDiv.querySelector("#stand").addEventListener("click", function(){
+            actionBtn.querySelector("#stand").addEventListener("click", function(){
                 table.haveTurn("stand");
                 Rendering.renderTable(table);
             })        
-        }
-        if(actingDiv.querySelector("#hit") != null){
-            actingDiv.querySelector("#hit").addEventListener("click", function(){
+            actionBtn.querySelector("#hit").addEventListener("click", function(){
                 table.haveTurn("hit");
                 Rendering.renderTable(table);
-            })        
-        }
-        if(actingDiv.querySelector("#double") != null){
-            actingDiv.querySelector("#double").addEventListener("click", function(){
+            })
+            actionBtn.querySelector("#double").addEventListener("click", function(){
                 table.haveTurn("double");
                 Rendering.renderTable(table);
             })
-            
+
+
+        if(currentPlayer.bet * 2 > currentPlayer.chips){
+            actionBtn.querySelector("#double").classList.add("disabled");
         }
+        //todo　ステータス別のボタン管理
 
-
-        // const user = table.players[0];
-        // if(user.gameStatus === "surrender" || user.gameStatus === "bust"){
-        //     const actionBtns = document.querySelectorAll("action-btn");
-        //     actionBtns.forEach((actionBtn) => {
-        //         actionBtn.classList.add("disabled");
-        //     })
-        // }
-        return actingDiv;
-
+        return actionBtn;
     }
-    //actingViewBtnのレンダリング
-    // static renderingActionBtn(table){
-    //     document.querySelector("#surrender").addEventListener("click", function(){
-    //         table.haveTurn("surrender");
-    //         Rendering.renderTable(table);
-    //     })
-    //     document.querySelector("#stand").addEventListener("click", function(){
-    //         table.haveTurn("stand");
-    //         Rendering.renderTable(table);
-    //     })        
-    //     document.querySelector("#hit").addEventListener("click", function(){
-    //         table.haveTurn("hit");
-    //         Rendering.renderTable(table);
-    //     })        
-    //     document.querySelector("#double").addEventListener("click", function(){
-    //         table.haveTurn("double");
-    //         Rendering.renderTable(table);
-    //     })
-
-
-    // }
-
-    //cardDivのレンダリング
     static renderingCard(player){
-
         const cardDiv = document.createElement("div");
         cardDiv.classList.add("d-flex", "justify-content-center", "pt-3", "pb-5");
-        player.hand.forEach((card, index) => {
+
+        if(player.gameStatus === "betting") {
             cardDiv.innerHTML += `
             <div class="bg-white border mx-2">
-                <div class="text-center">
-                    <img src=${(card === undefined)? "" :cardimg[card.suit]} alt="" width="50" height="50">
-                </div>
-                <div class="text-center">
-                    <p class="m-0 ">${(card === undefined)? "" :card.rank}</p>
-                </div>
+            <div class="text-center">
+                <img src=${cardimg["questionMark"]} alt="" width="50" height="50">
             </div>
+            <div class="text-center">
+                <p class="m-0 ">?</p>
+            </div>
+            </div>
+            <div class="bg-white border mx-2">
+            <div class="text-center">
+                <img src=${cardimg["questionMark"]} alt="" width="50" height="50">
+            </div>
+            <div class="text-center">
+                <p class="m-0 ">?</p>
+            </div>
+            </div>
+            
             `
-        });
-
-
+        } else { 
+            player.hand.forEach((card) => {
+                cardDiv.innerHTML += `
+                <div class="bg-white border mx-2">
+                    <div class="text-center">
+                        <img src=${(card === undefined)? cardimg["questionMark"] :cardimg[card.suit]} alt="" width="50" height="50">
+                    </div>
+                    <div class="text-center">
+                        <p class="m-0 ">${(card === undefined)? "?" :card.rank}</p>
+                    </div>
+                </div>
+                `
+            });
+        }
 
         return cardDiv;
     }
-
-    //player情報のレンダリング
     static renderingPlayerInfo(player){
         const playerInfoDiv = document.createElement("div");
-        playerInfoDiv.classList.add("text-white", "d-flex", "m-0", "p-0", "justify-content-center");
+        playerInfoDiv.classList.add("text-white", "d-flex", "flex-column", "m-0", "p-0");
         playerInfoDiv.innerHTML = `
-            <p class="rem1 text-left">S:${player.gameStatus} </p>
-            <p class="rem1 text-left">B:${player.bet} </p>
-            <p class="rem1 text-left">R:${player.chips} </p>
+                <h3>${player.name}</h3>
+                <p class="rem1 text-left">S:${player.gameStatus} </p>
+                <p class="rem1 text-left">B:${player.bet} </p>
+                <p class="rem1 text-left">R:${player.chips} </p>
         `
         return playerInfoDiv;
     }
-    //house情報のレンダリング actingView用
     static renderingHouseInfo(table){
         const house = table.house;
-
         const houseInfoDiv = document.createElement("div");
+        const houseInfoCloseDiv = document.createElement("div");
+        const houseInfoOpenDiv = document.createElement("div");
+
         houseInfoDiv.innerHTML = `
-            <p class="text-center text-white rem3">Dealer</p>
+            <p class="m-0 text-center text-white rem3">Dealer</p>
             <p class="rem1 text-center text-white">S:${house.gameStatus}</p>
-
+        `
+        houseInfoCloseDiv.innerHTML = `
             <div id="houesCardDiv" class="d-flex justify-content-center pt-3 pb-5">
-
                 <div class="bg-white border mx-2">
                     <div class="text-center">
-                        <img src=${(house.hand[0] === undefined)? "" :cardimg[house.hand[0].suit]} alt="" width="50" height="50">
+                        <img src=${(house.hand[0] === undefined)? cardimg["questionMark"] :cardimg[house.hand[0].suit]} alt="" width="50" height="50">
                     </div>
                     <div class="text-center">
-                        <p class="m-0 ">${(house.hand[0] === undefined)? "" :house.hand[0].rank}</p>
+                        <p class="m-0 ">${(house.hand[0] === undefined)? "?" :house.hand[0].rank}</p>
                     </div>
                 </div>
-
             </div>
         `
+        houseInfoOpenDiv.append(Rendering.renderingCard(house));
+
+        if(table.gamePhase === "acting" || table.gamePhase ==="betting"){
+            houseInfoDiv.append(houseInfoCloseDiv);
+        } else{
+            houseInfoDiv.append(houseInfoOpenDiv);
+        }
+
        return houseInfoDiv;
     }
+
+    static renderingResult(table){
+        
+        const resultDiv = document.createElement("div");
+        resultDiv.classList.add("text-white", "d-flex", "flex-wrap", "w-70", "justify-content-center");
+        resultDiv.innerHTML = `Round Result: ${table.resultsLog}`
+
+
+        let nextRoundBtn = document.createElement("div");
+        nextRoundBtn.classList.add("d-flex", "flex-wrap", "w-70", "justify-content-center");
+        nextRoundBtn.innerHTML = `
+            <div class="py-2">
+                <a id="next-round" class="action-btn text-dark btn btn-light px-5 py-1">OK</a>
+            </div>
+            `
+        nextRoundBtn.addEventListener("click", () => {
+            table.turnCounter = 0;
+            table.gamePhase = "betting";
+            table.blackjackClearPlayerHandsAndBets();
+            Rendering.renderTable(table);
+
+        })
+        resultDiv.append(nextRoundBtn);
+        return resultDiv;
+    }
+
+
 }
 
 const cardimg = {
@@ -999,6 +1141,7 @@ const cardimg = {
     "D": "https://recursionist.io/img/dashboard/lessons/projects/diamond.png", 
     "C": "https://recursionist.io/img/dashboard/lessons/projects/clover.png", 
     "S": "https://recursionist.io/img/dashboard/lessons/projects/spade.png",
+    "questionMark": "https://recursionist.io/img/questionMark.png",
 }
 
 Rendering.initializeGame();
