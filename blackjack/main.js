@@ -41,14 +41,12 @@ class Card
       return cardRank[this.rank];
     }
 }
-
 /*
 // Deckモデルのアップデート
 Deck constructor(String gameType): // gameTypeの文字列を受け取り、初期化されたデッキを返します。gameTypeがブラックジャックの場合、52枚のシャッフルされてないカードとしてデッキが初期化されます。デッキをシャッフルするにはシャッフルメソッドが使われます。
 Card drawOne(): // カードの配列から先頭のカード要素をpopし、それを返します。
 Void resetDeck(): // カードが尽きることがないように、各ラウンドの後にデッキをリセットしてシャッフルします。このメソッドは、デッキのカードの配列を52枚の新しいセットとして更新します。
 */
-
 class Deck
 {
     /*
@@ -98,12 +96,12 @@ class Deck
     {
       const suits = ["H", "D", "C", "S"];
       const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      this.cards = [];
       for(let i = 0; i < suits.length; i++){
         for(let j = 0;j < ranks.length; j++){
           this.cards.push(new Card(suits[i], ranks[j]));
         }
       }
-      
       this.shuffle();
     }
     
@@ -131,7 +129,6 @@ Number winAmount: // 整数0から言語でサポートされる最大の整数�
 
 Number getHandScore(): // Card.getRankNumber()を使用して、プレイヤーの手札にあるすべてのカードの値の合計を返します。手札の合計が21以上の場合は、スコアが21未満になるまで、手札の各エースを1としてカウントします。
 --*/
-
 class Player
 {
     /*
@@ -187,8 +184,13 @@ class Player
         if(this.type === "ai"){
             //betting phaseの処理
             if(this.gameStatus === "betting"){
+                const num = Math.floor(this.chips / 5);
                 action = "bet";
-                betAmount = (Math.floor(Math.random() * 80) + 1) * 5;
+                if(this.chips <= 5){
+                    betAmount = this.chips;
+                } else {
+                    betAmount = (Math.floor(Math.random() * num) + 1) * 5;
+                }
             } 
             //acting phaseの処理
             else if(this.gameStatus === "acting"){
@@ -200,11 +202,13 @@ class Player
                     const choice = choices[i];
                     action = choice;
                 }
-            } else { //hitのとき
+            } else if(this.gameStatus === "hit"){ //hitのとき
                 const choices = ["surrender", "stand", "hit"];
                 const i = Math.floor(Math.random() * 3);
                 const choice = choices[i];
                 action = choice;      
+            } else { // broken
+                action = "broken";
             }
         //houseの場合
         } else if(this.type === "house"){
@@ -212,7 +216,6 @@ class Player
             if(this.gameStatus === "betting"){
                 action = "bet";
             } else{
-                console.log(this.getHandScore());
                 if(this.getHandScore() < 17) {
                     action = "hit";
                 } else {
@@ -228,7 +231,6 @@ class Player
                 action = userData;
             } 
         }
-            
         let GD = new GameDecision(action, betAmount);
         return GD;
     }
@@ -345,15 +347,9 @@ class Table
                 Player.gameStatus = "bust";
             }
         } else {
-            console.log("該当なし！！");
+            console.log("該当なし action:" + action);
         }
-
-        //brokenの処理
-        if(Player.chips < 0){
-            Player.gameStatus = "broken";
-        }
-        console.log("name:" + Player.name + " action:" + action + " status:" + Player.gameStatus + " bet:" + Player.bet);
-        
+        console.log(Player.name + " " + action + " " + Player.gameStatus);
     }
 
     /*
@@ -362,56 +358,57 @@ class Table
     */
     blackjackEvaluateAndGetRoundResults()
     {
-        //todo blackjackの処理
-        //chipが変更されてないエラー
 
+        
         let log = [];
-        for(let i = 0; i < this.players.length; i++){
+        for(let i = 0; i < this.players.length-1; i++){
             const player = this.players[i];
             const house = this.house;
             const score = player.getHandScore();
 
             //bustの処理
-            if(player.gameStatus === "bust"){
-                player.chips -= player.bet;
-            } else if(player.gameStatus === "doublebust"){
-                player.chips -= player.bet * 2;
+            if(player.gameStatus === "bust" || player.gameStatus === "doublebust"){
+                player.winAmount = player.bet * -1;
+
             } else if(player.gameStatus === "surrender"){
-                player.chips -= Math.floor(player.bet / 2);
-                //hitのステータスはないはず?
-            } else if(player.gameStatus === "stand" || player.gameStatus === "double"){
-                //houseがbustの場合
+                player.winAmount = Math.floor(player.bet / 2) * -1;
+            } else if(player.gameStatus === "stand" || player.gameStatus === "doublestand"){
                 if(this.house.gameStatus === "bust"){
                     player.winAmount = player.bet;
-                    player.chips += player.winAmount;
-                } else if(this.isBlackjack(house.hand)) {
-                    console.log("house is blackjack");
+                } else if(this.isBlackjack(house.hand) && this.isBlackjack(player.hand)) {
+                    player.winAmount = 0;
+                    player.gameStatus = "blackjack";
                 } else if(this.isBlackjack(player.hand)){
-                    console.log("player is blackjack");
+                    player.winAmount = Math.floor(player.bet * 1.5);
+                    player.gameStatus = "blackjack";
                 } else if(score > house.getHandScore()){
                     player.winAmount = player.bet;
-                    player.chip += player.winAmount;
                 } else if(score < house.getHandScore()){
-                    player.chip -= player.bet;
+                    player.winAmount = player.bet * -1;
+                } else if(score === house.getHandScore()){
+                    player.winAmount = 0;
+                } else {
+                    console.log("error");
                 }
             }
-            log += ["name:" + player.name + ", action:" + player.gameStatus + ", bet:" + player.bet + ", won:" + player.winAmount + ", chip:" + player.chips + "/ "];
+            player.chips += player.winAmount;
+            log.push("name:" + player.name + ", action:" + player.gameStatus + ", bet:" + player.bet + ", won:" + player.winAmount + ", chip:" + player.chips);
+            //brokenの処理
+            if(player.chips <= 0){
+                player.gameStatus = "broken";
+            }
         }
-
-        console.log(log);
         return log;
     }
 
     isBlackjack(cards){
         let cardIsBJ = false;
-        console.log(cards);
         const faceCards = ["J", "Q", "K"];
-        if(cards[0].suit === "A" && faceCards.find(cards[1].suit)){
+        if(cards[0].rank === "A" && faceCards.includes(cards[1].rank)){
             cardIsBJ = true;
-        } else if(cards[1].suit === "A" && faceCards.find(cards[0].suit)){
+        } else if(cards[1].rank === "A" && faceCards.includes(cards[0].rank)){
             cardIsBJ = true;
         }
-        console.log(cardIsBJ);
         return cardIsBJ;
     }
 
@@ -422,9 +419,12 @@ class Table
     blackjackAssignPlayerHands()
     {
         for(let i = 0; i < this.players.length; i++){
-            this.players[i].hand.push(this.deck.drawOne(), this.deck.drawOne());
+            if(this.players[i].gameStatus === "broken"){
+                this.players[i].hand.push(new Card("?", "?"), new Card("?", "?"));
+            } else {
+                this.players[i].hand.push(this.deck.drawOne(), this.deck.drawOne());
+            }
         }
-        //todo: ハウスの場合の処理？？
         
     }
 
@@ -436,9 +436,11 @@ class Table
         for(let i = 0; i < this.players.length; i++){
             this.players[i].hand = [];
             this.players[i].bet = 0;
-            this.players[i].gameStatus = "betting";
             this.players[i].winAmount = 0;
-        }
+            if(this.players[i].gameStatus !== "broken"){
+                this.players[i].gameStatus = "betting";
+            }
+        }    
     }
     
     /*
@@ -460,40 +462,31 @@ class Table
     {   
         const player = this.getTurnPlayer();
         const gamePhase = this.gamePhase;
-
         if(gamePhase === "betting"){
             //一人目ならベット額とハンドを空にする
             if(this.onFirstPlayer()){
                 this.blackjackClearPlayerHandsAndBets();
-                // this.house.gameStatus = "waitingForBets"
             }
             this.evaluateMove(player, userData);
             //betが終わったらgamePhaseをactingに移行し、初回カードを配る
             if(this.onLastPlayer()){
                 this.blackjackAssignPlayerHands();
                 this.gamePhase = "acting";
-                // this.house.gameStatus = "waitingForActions"
             }
         } else if(gamePhase === "acting"){ 
             if(player.gameStatus === "acting" || player.gameStatus === "hit"){ 
                 this.evaluateMove(player, userData);
             } 
-
             //すべてのプレイヤーがアクションを終えたらevaluatingWinnerに移行する
             if(this.allPlayerActionsResolved()) this.gamePhase = "evaluatingWinner";
-        
         } else if(gamePhase === "evaluatingWinner"){
-            this.resultsLog += this.blackjackEvaluateAndGetRoundResults();
+            this.resultsLog.push(this.blackjackEvaluateAndGetRoundResults());
             this.gamePhase = "roundOver";
         } else {
-            this.gamePhase = "betting";
-            this.deck.resetDeck();
-            
+            console.log("haveTurn内のerror")
         }
-
         this.turnCounter++;
     }
-
 
     /*
         return Boolean : テーブルがプレイヤー配列の最初のプレイヤーにフォーカスされている場合はtrue、そうでない場合はfalseを返します。
@@ -530,8 +523,6 @@ class Table
         }
         return isResolved;
     }
-
-
 };
 
 
@@ -540,12 +531,13 @@ class Rendering {
     Method 
     void initializeGame() // tableの初期化、renderTable()の実行
     void renderTable(table) // レンダリングの実行　ユーザーのアクションを促すときとそれ以外で場合分け
-    void renderingBtn(table) // bettingView : betボタンのレンダリング　あとでDOMでレンダリングに変更してもいい
-    divObj renderingActionView(table) // actionView: actingViewのDiv返す　renderingHouseInfo/renderingPlayerInfo/renderingCard/renderingActionBtn
-    divObj renderingActionBtn(table) // actionView: actionBtnのDiv返す todo: ステータス別のdisabledクラス付与
+    void renderingBtn(table) // bettingView : betボタンのレンダリング　
+    divObj renderingActionView(table) // actionView: actingViewのDiv返す　r
+    divObj renderingActionBtn(table) // actionView: actionBtnのDiv返す 
     divObj renderingCard(player) //actionView: cardのDiv返す
     divObj renderingPlayerInfo(player) // actionView: player情報のDiv返す
     divObj renderingHouseInfo(table) // actionView: house情報のDiv返す
+    divObj renderingResult(table)
     */
 
     static initializeGame(){
@@ -582,262 +574,29 @@ class Rendering {
     }
     static renderTable(table){ 
         const gameDiv = document.getElementById("gameDiv");
-        const bettingView = `
-        <!-- all cards (dealer, players) div -->
-        <div class="col-12">
-            <div class="pt-5">
-                <p class="m-0 text-center text-white rem3">Dealer</p>
-      
-                <!-- House Card Row -->
-                <div id="houesCardDiv" class="d-flex justify-content-center pt-3 pb-5">
-      
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0 ">?</p>
-                        </div>
-                    </div>
-      
-                    <div class="bg-white border mx-2">
-                        <div class="text-center">
-                            <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                        </div>
-                        <div class="text-center">
-                            <p class="m-0">?</p>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-      
-            <div class="">
-      
-                <!-- Players Div -->
-                <div id="playersDiv" class="d-flex justify-content-center">
-      
-                    <!-- nonCurPlayerDiv 1-->
-                    <div id="nonCurPlayer1Div" class="flex-column">
-      
-                        <p class="m-0 text-white text-center rem3">ai1</p>
-      
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-between">
-                            <p class="rem1 text-left">S:${table.players[1].gameStatus}&nbsp;</a>
-                            <p class="rem1 text-left">B:${table.players[1].bet}&nbsp;</a>
-                            <p class="rem1 text-left">C:${table.players[1].chips}&nbsp;</a>
-                        </div>
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0 ">?</p>
-                            </div>
-                        </div>
-        
-                        <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0">?</p>
-                            </div>
-                        </div>
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-      
-                    <!-- curPlayerDiv -->
-                    <div id = "curPlayerDiv" class="flex-column w-50">
-                        <p class="m-0 text-white text-center rem3">ai2</p>
-      
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-center">
-                        <p class="rem1 text-left">S:${table.players[2].gameStatus}&nbsp;</a>
-                        <p class="rem1 text-left">B:${table.players[2].bet}&nbsp;</a>
-                        <p class="rem1 text-left">C:${table.players[2].chips}&nbsp;</a>
-                        </div>
-      
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0 ">?</p>
-                            </div>
-                        </div>
-        
-                        <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0">?</p>
-                            </div>
-                        </div><!-- end card -->
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-      
-                    <!-- nonCurPlayer2Div -->
-                    <div id="nonCurPlayer2Div" class="flex-column">
-      
-                        <p class="m-0 text-white text-center rem3">${table.players[0].name}</p>
-      
-                        <!-- playerInfoDiv -->
-                        <div class="text-white d-flex m-0 p-0 justify-content-between">
-                        <p class="rem1 text-left">S:${table.players[0].gameStatus}&nbsp;</a>
-                        <p class="rem1 text-left">B:${table.players[0].bet}&nbsp;</a>
-                        <p class="rem1 text-left">C:${table.players[0].chips}&nbsp;</a>
-                        </div>
-      
-                        <!-- cardsDiv -->
-                        <div class="d-flex justify-content-center">
-                            <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0 ">?</p>
-                            </div>
-                        </div>
-        
-                        <div class="bg-white border mx-2">
-                            <div class="text-center">
-                                <img src="https://recursionist.io/img/questionMark.png" alt="" width="50" height="50">
-                            </div>
-                            <div class="text-center">
-                                <p class="m-0">?</p>
-                            </div>
-                        </div> <!-- end card -->
-                        </div><!-- end Cards -->
-                    </div><!-- end player -->
-                </div><!-- end players -->
-      
-                <!-- actionsAndBetsDiv -->
-                <div id="actionsAndBetsDiv" class="d-flex pb-5 pt-4 justify-content-center">
-                     <!-- betsDiv -->
-                    <div id="betsDiv" class="d-flex flex-column w-50">
-                        <!-- bottom half of bets including chip increments and submit  -->
-                        <div class="py-2 h-60 d-flex justify-content-between">
-                            <!-- betChoiceDiv -->
-                            <div>
-                                <div class="input-group" >
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-danger btn-number">
-                                            -
-                                        </button>
-                                    </span>
-                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="0" min="0" max="">
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-success btn-number">
-                                            +
-                                        </button>
-                                    </span>
-                                </div><!--end input group div -->
-                                <p class="text-white text-center">5</p>
-                            </div> <!-- end betChoiceDiv -->
-                            <!-- betChoiceDiv -->
-                            <div>
-                                <div class="input-group" >
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-danger btn-number">
-                                            -
-                                        </button>
-                                    </span>
-                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-success btn-number">
-                                            +
-                                        </button>
-                                    </span>
-                                </div><!--end input group div -->
-                                <p class="text-white text-center">20</p>
-                            </div> <!-- end betChoiceDiv -->
-                            <!-- betChoiceDiv -->
-                            <div>
-                                <div class="input-group" >
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-danger btn-number">
-                                            -
-                                        </button>
-                                    </span>
-                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-success btn-number">
-                                            +
-                                        </button>
-                                    </span>
-                                </div><!--end input group div -->
-                                <p class="text-white text-center">50</p>
-                            </div> <!-- end betChoiceDiv -->
-                            <!-- betChoiceDiv -->
-                            <div>
-                                <div class="input-group" >
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-danger btn-number">
-                                            -
-                                        </button>
-                                    </span>
-                                    <input type="text" class="input-number text-center" size="2" maxlength="5" value="0">
-                                    <span class="input-group-btn">
-                                        <button type="button" class="btn btn-success btn-number">
-                                            +
-                                        </button>
-                                    </span>
-                                </div><!--end input group div -->
-                                <p class="text-white text-center">100</p>
-                            </div> <!-- end betChoiceDiv -->
-                        </div><!-- end bestSelectionDiv -->
-                        <!-- betSubmitDiv -->
-                        <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary">
-                            Submit your bet 
-                        </div><!-- end betSubmitDiv -->
-                    </div><!-- end betsDiv-->
-      
-                </div><!-- end actionsAndBetsDiv-->
-            </div>
-        </div>
-        `
         const currentPlayer = table.getTurnPlayer();
-        console.log(currentPlayer.type);
-        console.log(currentPlayer.gameStatus);
         if(currentPlayer.type === "user" && currentPlayer.gameStatus === "betting"){
-            // gameDiv.innerHTML = bettingView;
             gameDiv.innerHTML = ``;
             gameDiv.append(Rendering.renderingActionView(table));
             gameDiv.append(Rendering.renderingBtn(table));
-
         } else if(currentPlayer.type === "user" && (currentPlayer.gameStatus === "acting" || currentPlayer.gameStatus === "hit")){
             gameDiv.innerHTML = ``;
             gameDiv.append(Rendering.renderingActionView(table));
             gameDiv.append(Rendering.renderingActionBtn(table));
-
         } else if(table.gamePhase === "roundOver") {
             gameDiv.innerHTML = ``;
             gameDiv.append(Rendering.renderingActionView(table));
             gameDiv.append(Rendering.renderingResult(table));
-            console.log("stop!!!");
+        } else if(table.gamePhase === "betting"){
+            table.haveTurn();
+            Rendering.renderTable(table);
         } else {
-
             setTimeout(function(){
                 table.haveTurn();
                 Rendering.renderTable(table);
-                if(table.gamePhase === "acting"){
-                    gameDiv.innerHTML = ``;
-                    gameDiv.append(Rendering.renderingActionView(table));
-                    gameDiv.append(Rendering.renderingActionBtn(table));
-                }
-            }, 500)
+            }, 300)
         }
-        console.log(table);
     }
-
-
     static renderingBtn(table){
         const renderingBtn = document.createElement("div");
         renderingBtn.classList.add("d-flex", "pb-5", "pt-4", "justify-content-center");
@@ -916,16 +675,21 @@ class Rendering {
                     </div> <!-- end betChoiceDiv -->
                 </div><!-- end bestSelectionDiv -->
                 <!-- betSubmitDiv -->
-                <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary">
+                <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary" style="cursor: pointer">
                     Submit your bet 
                 </div><!-- end betSubmitDiv -->
             </div><!-- end betsDiv-->
             `
-
         const inputNumbers = renderingBtn.querySelectorAll(".input-number");
         const deno = table.betDenominations;
         const chip = table.players[0].chips;
-
+        const caluculateBet = () =>{
+            let bet = 0;
+            inputNumbers.forEach((inputNumber, index) => {
+                bet += inputNumber.value * deno[index];
+            });
+            return bet;
+        }
         //ボタン操作
         const btnNumbers = renderingBtn.querySelectorAll(".btn-number");
         btnNumbers.forEach((btnNumber, index) => {
@@ -937,30 +701,25 @@ class Rendering {
                     }
                 });
             } else {
-                    btnNumber.addEventListener("click", () => {
-                        let bet = 0;
-                        inputNumbers.forEach((inputNumber, index) => {
-                            bet += inputNumber.value * deno[index];
-                        })
-                        if(bet < chip){
-                            inputNumbers[denoIndex].value++;
-                        }
-                    });
+                btnNumber.addEventListener("click", () => {
+                    let bet = caluculateBet();
+                    if(bet < chip){
+                        inputNumbers[denoIndex].value++;
+                    }
+                });
             }
         });
         //submitボタン
         renderingBtn.querySelector("#bet-submit").addEventListener("click", function(){
-            let bet = 0;
-            inputNumbers.forEach((inputNumber, index) => {
-                bet += inputNumber.value * deno[index];
-            })
-            table.haveTurn(bet);
-            Rendering.renderTable(table);
+            let bet = caluculateBet();
+            if(bet > 0 && bet <= chip){
+                table.haveTurn(caluculateBet());
+                Rendering.renderTable(table);
+                
+            }
         });
-
         return renderingBtn;
-    };
-
+    }
     static renderingActionView(table){
         const actingDiv = document.createElement("div");
         actingDiv.classList.add("pt-5");
@@ -972,15 +731,13 @@ class Rendering {
             const playerDiv = document.createElement("div");
             playerDiv.classList.add("m-3");
             playerDiv.append(Rendering.renderingPlayerInfo(table.players[i]));
-            playerDiv.append(Rendering.renderingCard(table.players[i]));
+            playerDiv.append(Rendering.renderingCard(table.players[i], table.gamePhase));
             playersDiv.append(playerDiv);
         }
         actingDiv.append(playersDiv);
         return actingDiv;
-
     }
     static renderingActionBtn(table){
-
         const actionBtn = document.createElement("div");
         actionBtn.classList.add("d-flex", "flex-wrap", "w-70", "justify-content-center");
         actionBtn.innerHTML = `
@@ -1001,37 +758,39 @@ class Rendering {
             actionBtn.querySelector("#surrender").addEventListener("click", function(){
                 table.haveTurn("surrender");
                 Rendering.renderTable(table);
-            })
+            },{ once: true })
             actionBtn.querySelector("#stand").addEventListener("click", function(){
                 table.haveTurn("stand");
                 Rendering.renderTable(table);
-            })        
+            },{ once: true })        
             actionBtn.querySelector("#hit").addEventListener("click", function(){
                 table.haveTurn("hit");
                 Rendering.renderTable(table);
-            })
+            },{ once: true })
             actionBtn.querySelector("#double").addEventListener("click", function(){
                 table.haveTurn("double");
                 Rendering.renderTable(table);
-            })
-
+            },{ once: true })
 
         if(currentPlayer.bet * 2 > currentPlayer.chips){
             actionBtn.querySelector("#double").classList.add("disabled");
         }
-        //todo　ステータス別のボタン管理
+        if(table.turnCounter >= table.players.length * 2){
+            actionBtn.querySelector("#surrender").classList.add("disabled");
+            actionBtn.querySelector("#double").classList.add("disabled");
+        }
 
         return actionBtn;
     }
-    static renderingCard(player){
+    static renderingCard(player, gamePhase){
         const cardDiv = document.createElement("div");
         cardDiv.classList.add("d-flex", "justify-content-center", "pt-3", "pb-5");
-
-        if(player.gameStatus === "betting") {
+        
+        if(gamePhase === "betting") {
             cardDiv.innerHTML += `
             <div class="bg-white border mx-2">
             <div class="text-center">
-                <img src=${cardimg["questionMark"]} alt="" width="50" height="50">
+                <img src=${cardimg["?"]} alt="" width="50" height="50">
             </div>
             <div class="text-center">
                 <p class="m-0 ">?</p>
@@ -1039,23 +798,22 @@ class Rendering {
             </div>
             <div class="bg-white border mx-2">
             <div class="text-center">
-                <img src=${cardimg["questionMark"]} alt="" width="50" height="50">
+                <img src=${cardimg["?"]} alt="" width="50" height="50">
             </div>
             <div class="text-center">
                 <p class="m-0 ">?</p>
             </div>
             </div>
-            
             `
-        } else { 
+        } else {
             player.hand.forEach((card) => {
                 cardDiv.innerHTML += `
                 <div class="bg-white border mx-2">
                     <div class="text-center">
-                        <img src=${(card === undefined)? cardimg["questionMark"] :cardimg[card.suit]} alt="" width="50" height="50">
+                        <img src=${cardimg[card.suit]} alt="" width="50" height="50">
                     </div>
                     <div class="text-center">
-                        <p class="m-0 ">${(card === undefined)? "?" :card.rank}</p>
+                        <p class="m-0 ">${card.rank}</p>
                     </div>
                 </div>
                 `
@@ -1071,7 +829,7 @@ class Rendering {
                 <h3>${player.name}</h3>
                 <p class="rem1 text-left">S:${player.gameStatus} </p>
                 <p class="rem1 text-left">B:${player.bet} </p>
-                <p class="rem1 text-left">R:${player.chips} </p>
+                <p class="rem1 text-left">C:${player.chips} </p>
         `
         return playerInfoDiv;
     }
@@ -1083,13 +841,13 @@ class Rendering {
 
         houseInfoDiv.innerHTML = `
             <p class="m-0 text-center text-white rem3">Dealer</p>
-            <p class="rem1 text-center text-white">S:${house.gameStatus}</p>
-        `
+            <p class="rem1 text-center text-white">S:${(table.gamePhase === "betting" || table.gamePhase === "acting")? "Waiting for Action" : house.gameStatus}</p>
+            `
         houseInfoCloseDiv.innerHTML = `
             <div id="houesCardDiv" class="d-flex justify-content-center pt-3 pb-5">
                 <div class="bg-white border mx-2">
                     <div class="text-center">
-                        <img src=${(house.hand[0] === undefined)? cardimg["questionMark"] :cardimg[house.hand[0].suit]} alt="" width="50" height="50">
+                        <img src=${(house.hand[0] === undefined)? cardimg["?"] :cardimg[house.hand[0].suit]} alt="" width="50" height="50">
                     </div>
                     <div class="text-center">
                         <p class="m-0 ">${(house.hand[0] === undefined)? "?" :house.hand[0].rank}</p>
@@ -1107,33 +865,56 @@ class Rendering {
 
        return houseInfoDiv;
     }
-
     static renderingResult(table){
-        
         const resultDiv = document.createElement("div");
-        resultDiv.classList.add("text-white", "d-flex", "flex-wrap", "w-70", "justify-content-center");
-        resultDiv.innerHTML = `Round Result: ${table.resultsLog}`
+        resultDiv.classList.add("text-white", "d-flex", "flex-column", "flex-wrap", "w-70", "justify-content-center");
+        
+        table.resultsLog.map((roundResult, roundCount) => {
+            let roundDiv = document.createElement("div")
+            roundDiv.innerHTML = `Round ${roundCount+1}:`
+            roundResult.map((playerResult) => {
+                let li = document.createElement("li");
+                li.innerHTML = `${playerResult}`
+                roundDiv.append(li);
+            })
+            resultDiv.append(roundDiv);
+        });
 
+        let gameOverBtn = document.createElement("div");
+        gameOverBtn.classList.add("d-flex", "flex-wrap", "w-70", "justify-content-center");
+
+        gameOverBtn.innerHTML = `
+        <div class="py-2">
+            <a id="game-over" class="action-btn text-dark btn btn-light px-5 py-1">NEW GAME</a>
+        </div>
+        `
+        gameOverBtn.querySelector("#game-over").addEventListener("click", () => {
+            Rendering.initializeGame();
+        })
 
         let nextRoundBtn = document.createElement("div");
         nextRoundBtn.classList.add("d-flex", "flex-wrap", "w-70", "justify-content-center");
         nextRoundBtn.innerHTML = `
             <div class="py-2">
-                <a id="next-round" class="action-btn text-dark btn btn-light px-5 py-1">OK</a>
+                <a id="next-round" class="action-btn text-dark btn btn-light px-5 py-1">NEXT ROUND</a>
             </div>
             `
-        nextRoundBtn.addEventListener("click", () => {
+        nextRoundBtn.querySelector("#next-round").addEventListener("click", () => {
             table.turnCounter = 0;
             table.gamePhase = "betting";
+            table.deck.resetDeck();
             table.blackjackClearPlayerHandsAndBets();
             Rendering.renderTable(table);
-
         })
-        resultDiv.append(nextRoundBtn);
+
+        if(table.players[0].gameStatus === "broken"){
+            resultDiv.append(gameOverBtn);
+        } else {
+            resultDiv.append(nextRoundBtn);
+        }
+
         return resultDiv;
     }
-
-
 }
 
 const cardimg = {
@@ -1141,7 +922,7 @@ const cardimg = {
     "D": "https://recursionist.io/img/dashboard/lessons/projects/diamond.png", 
     "C": "https://recursionist.io/img/dashboard/lessons/projects/clover.png", 
     "S": "https://recursionist.io/img/dashboard/lessons/projects/spade.png",
-    "questionMark": "https://recursionist.io/img/questionMark.png",
+    "?": "https://recursionist.io/img/questionMark.png",
 }
 
 Rendering.initializeGame();
