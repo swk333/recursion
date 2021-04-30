@@ -542,6 +542,7 @@ class Rendering {
 
     static initializeGame(){
         const gameDiv = document.getElementById("gameDiv");
+
         gameDiv.innerHTML = `
         <!-- login form div -->
         <div class="d-flex flex-column justify-content-center align-items-center">
@@ -564,7 +565,7 @@ class Rendering {
         </div>
         `
 
-        document.getElementById("start").addEventListener("click", function(){
+        gameDiv.querySelector("#start").addEventListener("click", function(){
             const name = document.getElementById("name").value;
             const user = new Player(name, "user", "blackjack");
             const table = new Table("blackjack");
@@ -602,7 +603,7 @@ class Rendering {
         renderingBtn.classList.add("d-flex", "pb-5", "pt-4", "justify-content-center");
         renderingBtn.innerHTML = `
              <!-- betsDiv -->
-            <div id="betsDiv" class="d-flex flex-column w-50">
+            <div id="betsDiv" class="d-flex flex-column w-100">
                 <!-- bottom half of bets including chip increments and submit  -->
                 <div class="py-2 h-60 d-flex justify-content-between">
                     <!-- betChoiceDiv -->
@@ -677,7 +678,7 @@ class Rendering {
                 <!-- betSubmitDiv -->
                 <div id="bet-submit" class="w-100 btn-success rem5 text-center bg-primary" style="cursor: pointer">
                     Submit your bet 
-                </div><!-- end betSubmitDiv -->
+                <div><!-- end betSubmitDiv -->
             </div><!-- end betsDiv-->
             `
         const inputNumbers = renderingBtn.querySelectorAll(".input-number");
